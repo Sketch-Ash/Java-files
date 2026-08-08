@@ -1,0 +1,222 @@
+import java.time.LocalDate;
+import java.util.Scanner;
+public class DungeonDeathDecider {
+    public static void main(String[] args) {
+        System.out.println("Welcome to the Dungeons of Fear and Hunger. This is a text based RPG based on the RPGMaker game of the same name.\n");
+        System.out.println("Enter your Personal Details: These will not be shared, so feel free to answer honestly.\n");
+        Start user = new Start();
+        user.character.finalCalc();
+        DeathDate deathDate = new DeathDate(user.character.health,user.character.dna,user.character.habits);
+        deathDate.display();
+    }
+}
+class Personal {
+    int health,dna,habits;//not entered by user, but calculated based on user input, max 100
+    int age,height,weight;//entered by user
+    double bmi;//calculated from height and weight
+    String name,countryOfOrigin;//Some details collected but not used to make code simpler
+    char sex,gender,maritalStatus;
+    Personal() {
+        Scanner sc = new Scanner(System.in);
+        System.out.print("Enter your name: ");
+        this.name = sc.nextLine();
+        System.out.print("Enter your age: ");
+        this.age = sc.nextInt();sc.nextLine(); 
+        System.out.print("Enter your height (in cm): ");
+        this.height = sc.nextInt();sc.nextLine(); 
+        System.out.print("Enter your weight (in kg): ");
+        this.weight = sc.nextInt();sc.nextLine(); 
+        System.out.print("Enter your assigned gender at birth (M/F/X): ");
+        this.sex = sc.nextLine().charAt(0);
+        System.out.print("Enter your gender identity (M/F/X): ");
+        this.gender = sc.nextLine().charAt(0);
+        System.out.print("Are you married? (Y/N): ");
+        this.maritalStatus = sc.nextLine().charAt(0);
+        System.out.print("Enter your country of origin: ");//always India (specifically South) to simplify logic
+        this.countryOfOrigin = sc.nextLine();
+        bmi=(double)weight/(height*height/10000);
+        healthCalc();
+        dnaCalc();
+    }
+    void healthCalc() {
+        double ageMultiplier = Math.pow(1.10, age - 30);//Exponential is quite steep and only starts dropping from age 30+ but statistical accuracy is important
+        this.health = (int)(100/ageMultiplier);
+        if(maritalStatus=='Y') {
+            this.health += 10;
+        }
+        health = Math.max(0, Math.min(100, health));
+    }
+    void dnaCalc() {
+        dna = 50;
+        // BMI
+        if (bmi >= 18.5 && bmi < 25)
+            dna += 15;
+        else if (bmi >= 25 && bmi < 30)
+            dna += 10;
+        else
+            dna += 5;
+        // Sex
+        if (sex == 'F')
+            dna += 10;
+        else if (sex == 'M')
+            dna -= 10;
+        // Country statistics, only India (specifically South)is implemented  
+        dna += 2;
+        dna = Math.max(0, Math.min(100, dna));
+    }
+}
+class Start extends Personal {
+    int choice;
+    Character character;
+    Start() {
+        Scanner sc = new Scanner(System.in);
+        System.out.println("These are the choices for your backstory. Choose the backstory that best represents your journey to the dungeons.");
+        System.out.print("1. The Thief:\nYou have lived a difficult life in the outskirts of the city. You survive on stolen goods, and the little money you make from the few temporary postings you can manage. You live with your spouse who is everything to you. The both of you are in desperate need of money, when you hear news of a bounty that could change your lives. It is for a man named \"Le\'Garde\", the Man of the Prophecy that is destined to change the world. He is imprisoned in the dungeons of Fear and Hunger, and anyone able to bring information about him will be rewarded handsomely. You decide to enter the terrifying dungeons, for the sake of your family.\n\n");//sympathetic, basic sword and basic armor, many skills, not very mentally healthy, family person
+        System.out.print("2. The Knight:\nYou have been a friend of the Man of the Prophecy, \"Le\'Garde\", for a very long time. While on one of his journeys, he was caught and imprisoned in the dungeons of Fear and Hunger. You are very resourceful, and have always taken good care of the little you have. You chose the path of a Knight from a very young age, and have always excelled at it. You fought alongside your friend, and eventually, the two of you formed a militia of your own, separate from the Government. With him being one of your only true friends, you simply must enter the dungeons to save your friend, no matter the cost.\n\n");//selfish, advanced sword and armor, few skills due to gifted child syndrome, mentally healthy, not a family person
+        do {
+            System.out.print("Enter your choice: ");
+            this.choice = sc.nextInt();
+            if(choice != 1 && choice != 2) {
+                System.out.println("Invalid choice.");
+            }
+        } while (this.choice != 1 && this.choice != 2);
+        character = new Character(choice,health,dna,habits);
+        Dungeon.start(character);
+    }
+}
+class DeathDate {
+    double totalScore;
+    int daysLeft;
+    LocalDate deathDate;
+    DeathDate(int health, int dna, int habits) {
+        totalScore=health*0.30+dna*0.25+habits*0.45;
+        daysLeft=(int)(totalScore*321);
+        deathDate=LocalDate.now().plusDays(daysLeft);
+    }
+    void display() {
+        System.out.println("\n\n------DEATH DATE PREDICTION------");
+        System.out.println("YOU WILL DIE ON: "+deathDate);
+        System.out.println("YOU HAVE "+daysLeft+" DAYS TO LIVE");
+        System.out.println("---------------------------------\n\nTHANK YOU FOR PARTICIPATING");
+    }
+}
+class Character {
+    int mental;
+    int health,dna,habits;
+    int role;//1-thief, 2-knight
+    Character(int choice,int health, int dna, int habits) {
+        this.health = health;
+        this.dna = dna;
+        this.habits = habits;
+        if(choice==1) {
+            this.mental = 30;
+            this.role=1;
+        }
+        else {
+            this.mental = 70;
+            this.role=2;
+        }
+    }
+    void finalCalc() {
+        mental=Math.max(0, Math.min(100, mental));
+        health = (int)(health * 0.70 + mental * 0.30);
+        health=Math.max(0, Math.min(100, health));
+        dna=Math.max(0,Math.min(100,dna));
+        habits=Math.max(0,Math.min(100,habits));
+    }
+}
+class Dungeon {
+    static void start(Character character) {
+        //Scenes that can be used for taking details
+        Scanner sc = new Scanner(System.in);
+        int choice;
+        //Entrance
+        System.out.println("**You can feel an otherworldly aura from the dungeons, as though what is here was not meant to be seen by humans.**\n");
+        //Barrel
+        System.out.println("Outside of the dungeons, you can see some barrels that contain items. You can hear the sounds of something in the distance, and must remain vigilant. Do you:");
+        System.out.println("1. Take the food?\n2. Take the medicinal herbs?\n3. Risk it and take both?\n4. Rush into the dungeons?");
+        choice = getChoice(sc,1,4);
+        switch(choice) {
+            case 1 -> { character.habits += 2; }
+            case 2 -> { character.health += 5; }
+            case 3 -> { character.habits += 1; character.health += 3; }
+            case 4 -> { character.mental -= 5; }
+        }
+        //Library
+        System.out.println("Near the entrance, you find a quiet library. This reminds you of:");
+        System.out.println("1. How you doom yourself to the scrolls, practically never putting your book down.\n2. Find peace in the world of books.\n3. How you\'ve hated books for the longest time.\n4. How you\'ve never gotten into books, though you are open to the possibility.");
+        choice = getChoice(sc,1,4);
+        switch(choice) {
+            case 1 -> { character.habits -= 4; }
+            case 2 -> { character.health += 2; character.mental += 3; }
+            case 3 -> { character.habits -= 2; }
+            case 4 -> { character.mental += 2; character.habits += 1; }
+        }
+        //Bunnymasks Wolfmasks
+        System.out.println("You encounter a large group of people wearing wolf masks, engaged in a strange yet cruel ritualistic slaughter. They invite you to take part in it to please their god. In wake of the sheer cruelty of the ritual, you reply:");
+        System.out.println("1. \"I can try it out once.\"\n2. \"Sorry, I cannot.\"\n3. \"This is disgusting.\"");
+        choice = getChoice(sc,1,3);
+        switch(choice) {
+            case 1 -> { character.habits -= 6; }
+            case 2 -> { character.health += 2; character.habits += 3; }
+            case 3 -> { character.habits += 3; character.mental += 2; }
+        }
+        //Smokes and Alcohol
+        System.out.println("After the sight of the ritual, you feel scared. The sheer horror of it disturbs you to your core. After exploring a few more rooms, you come across a room with the strong smell of tobacco, alcohol, and opium. You also notice some leftovers of each, which could help put your mind at ease. You are reminded of how you:");
+        System.out.println("1. Smoke.\n2. Drink.\n3. Do both.\n4. Dislike both.");
+        choice = getChoice(sc,1,4);
+        switch(choice) {
+            case 1 -> { character.habits -= 8; }
+            case 2 -> { character.habits -= 4; }
+            case 3 -> { character.habits -= 12; }
+            case 4 -> { character.habits += 5; }
+        }
+        //Stairs
+        System.out.println("You encounter a spiral staircase descending as far as the eye can see. The bottom looks deep. You stare into the darkness, and feel:");
+        System.out.println("1. The fear of heights.\n2. The fear of the unknown.\n3. Regret.\n4. Nothing you haven't felt earlier.");
+        choice = getChoice(sc,1,4);
+        switch(choice) {
+            case 1 -> { character.mental -= 2; }
+            case 2 -> { character.mental -= 2; }
+            case 3 -> { character.mental -= 3; character.habits -= 1; }
+            case 4 -> { character.health += 1; character.mental += 3; }
+        }
+        //Corpse, seperate for each character, 1-Uncaring, 2-Hating on another, 3-Hating on self, 4-Selfless
+        System.out.println("You enter a cell, hiding away from the monstrous armored gaurd at the end of the corridor. Within the cell, you notice a prisoner with a pool of blood around him. As you go closer to investigate, you realize that this was the Man of the Prophecy. The wounds seem fresh, likely within the hour. Upon seeing this, your first thought is:");
+        if(character.role==1)
+            System.out.println("1. \"My work here is done, and I can go back now.\"\n2. \"This is the Man of the Prophecy? How terrible must he have been to end up here. It must be a good thing that he is gone.\"\n3. \"If only I had been faster, I might have been able to save him from this sorry fate.\"\n4. \"It is a shame, even the greatest men can suffer unfortunate fates. He must have had a terrible time here.\"");//thief options
+        else
+            System.out.println("1. \"My work here is done, and I can go back now.\"\n2. \"If only he had been more careful, he would not have ended up this way. Truly a sorry fate for the Man of the Prophecy\"\n3. \"This is horrible, if only I was better maybe I could have saved him.\"\n4. \"He was truly a great friend. He did not deserve to die in such a cruel place as this.");//knight options
+        choice = getChoice(sc,1,4);
+        switch(choice) {
+            case 1 -> { character.habits -= 4; character.mental -= 2; }
+            case 2 -> { character.habits -= 2; character.mental -= 2; }
+            case 3 -> { character.habits -= 2; character.mental -= 4; }
+            case 4 -> { character.habits += 3; character.mental += 3; }
+        }
+        //Escape
+        System.out.println("You gather evidence of the Man of the Prophecy\'s untimely demise, and you travel back the way you came. The man you came for is now dead. As you walk, you feel as though you might never be the same after your time in these dungeons. These dungeons have made you: ");
+        System.out.println("1. Appreciate the value of the life you have and move on.\n2. Fear ever taking on another mission such as this.\n3. Desire a greater challenge than what these dungeons have given you.");
+        choice = getChoice(sc,1,3);
+        switch(choice) {
+            case 1 -> { character.health += 3; character.mental += 4; character.habits += 2; }
+            case 2 -> { character.mental -= 3; character.habits -= 2; }
+            case 3 -> { character.mental += 2; character.habits += 4; }
+        }
+        //Fate of thief
+        System.out.println("You make it back to your family in one piece. You are able to claim the bounty after brandishing the signature armband of the Man of the Prophecy, covered in his blood. This news greatly shakes the world and will come to shape its future. You are able to live the life of a noble with your acquired wealth, with no fear of ever going hungry again. However, this comfort came at the cost of you never quite being able to forget your time in the Dungeons. You live, but at a cost.");
+        //Fate of knight
+        System.out.println("You have become the bearer of bad news for the first time. You return to the militia you founded along with the Man of the Prophecy, and bring them his ashes. You honour him with a proper burial. Your time in the dungeons has made you sharper, being able to notice threats before they come into sight. This came at the cost of your trust in people, and the loss of your only true friend. The death of the Man of the Prophecy will change the future, but you have already been changed for the worse.");
+    }
+    static int getChoice(Scanner sc, int start, int end) {
+        int choice;
+        do {
+            System.out.print("Choice: ");
+            choice = sc.nextInt();sc.nextLine();
+            if(choice < start || choice > end) {
+                System.out.println("Invalid choice.");
+            }
+        } while (choice < start || choice > end);
+        return choice;
+    }
+}
